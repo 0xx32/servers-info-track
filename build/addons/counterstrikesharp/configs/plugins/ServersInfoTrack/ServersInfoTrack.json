@@ -1,0 +1,15 @@
+{
+  "Database": {
+    "Host": "localhost",
+    "Port": 3306,
+    "Name": "serverslist_db",
+    "User": "root",
+    "Password": "123456",
+    "TableName": "serverslist_servers"
+  },
+  "ServerId": 1,
+  "ServerName": "EU | Dust2 Only #1",
+  "ServerIp": "192.168.1.100:27015",
+  "UpdateIntervalSeconds": 30,
+  "ConfigVersion": 1
+}
