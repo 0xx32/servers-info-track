@@ -1,0 +1,14 @@
+{
+  "Database": {
+    "Host": "database_host",
+    "Port": 3306,
+    "Name": "database_name",
+    "User": "database_user",
+    "Password": "database_password",
+    "TableName": "servers_info"
+  },
+  "ServerId": 1,
+  "ServerName": "RU | Dust2 Only #1",
+  "ServerIp": "ip:port",
+  "ConfigVersion": 1
+}
