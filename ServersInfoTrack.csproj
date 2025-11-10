@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -23,21 +22,26 @@
     <MakeDir Directories="$(PluginOutputDir)" />
     <MakeDir Directories="$(ConfigOutputDir)" />
 
-    <Copy SourceFiles="$(OutputPath)ServersInfoTrack.dll"
-          DestinationFolder="$(PluginOutputDir)"
-          SkipUnchangedFiles="false" />
+    <Copy
+      SourceFiles="$(OutputPath)ServersInfoTrack.dll"
+      DestinationFolder="$(PluginOutputDir)"
+      SkipUnchangedFiles="false"
+    />
 
     <ItemGroup>
       <PluginDeps Include="$(OutputPath)MySqlConnector.dll;$(OutputPath)Newtonsoft.Json.dll" />
     </ItemGroup>
 
-    <Copy SourceFiles="@(PluginDeps)"
-          DestinationFolder="$(PluginOutputDir)"
-          SkipUnchangedFiles="false" />
+    <Copy
+      SourceFiles="@(PluginDeps)"
+      DestinationFolder="$(PluginOutputDir)"
+      SkipUnchangedFiles="false"
+    />
 
-    <Copy SourceFiles="$(ProjectDir)config.example.json"
-          DestinationFiles="$(ConfigOutputDir)ServersInfoTrack.json"
-          SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="$(ProjectDir)config.example.json"
+      DestinationFiles="$(ConfigOutputDir)ServersInfoTrack.json"
+      SkipUnchangedFiles="true"
+    />
   </Target>
-
 </Project>

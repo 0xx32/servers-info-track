@@ -1,10 +1,10 @@
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Config;
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace ServersList;
 
@@ -12,29 +12,48 @@ namespace ServersList;
 
 public class ServersInfoTrackConfig : BasePluginConfig
 {
-    [JsonPropertyName("Database")] public DatabaseConfig Database { get; set; } = new();
-    [JsonPropertyName("ServerId")] public int ServerId { get; set; } = 1;
-    [JsonPropertyName("ServerName")] public string ServerName { get; set; } = "My Server";
-    [JsonPropertyName("ServerIp")] public string ServerIp { get; set; } = "127.0.0.1";
+    [JsonPropertyName("Database")]
+    public DatabaseConfig Database { get; set; } = new();
+
+    [JsonPropertyName("ServerId")]
+    public int ServerId { get; set; } = 1;
+
+    [JsonPropertyName("ServerName")]
+    public string ServerName { get; set; } = "My Server";
+
+    [JsonPropertyName("ServerIp")]
+    public string ServerIp { get; set; } = "127.0.0.1";
 }
 
 public class DatabaseConfig
 {
-    [JsonPropertyName("Host")] public string Host { get; set; } = "";
-    [JsonPropertyName("Port")] public int Port { get; set; } = 3306;
-    [JsonPropertyName("Name")] public string Name { get; set; } = "";
-    [JsonPropertyName("User")] public string User { get; set; } = "";
-    [JsonPropertyName("Password")] public string Password { get; set; } = "";
-    [JsonPropertyName("TableName")] public string TableName { get; set; } = "servers_info";
+    [JsonPropertyName("Host")]
+    public string Host { get; set; } = "";
+
+    [JsonPropertyName("Port")]
+    public int Port { get; set; } = 3306;
+
+    [JsonPropertyName("Name")]
+    public string Name { get; set; } = "";
+
+    [JsonPropertyName("User")]
+    public string User { get; set; } = "";
+
+    [JsonPropertyName("Password")]
+    public string Password { get; set; } = "";
+
+    [JsonPropertyName("TableName")]
+    public string TableName { get; set; } = "servers_info";
 }
 
 #endregion
+
 
 public partial class ServersInfoTrack : BasePlugin, IPluginConfig<ServersInfoTrackConfig>
 {
     public override string ModuleName => "ServersInfoTrack";
     public override string ModuleAuthor => "0x32";
-    public override string ModuleVersion => "1.0";
+    public override string ModuleVersion => "1.0.1";
 
     public ServersInfoTrackConfig Config { get; set; } = new();
 
@@ -43,7 +62,7 @@ public partial class ServersInfoTrack : BasePlugin, IPluginConfig<ServersInfoTra
 
     public override void Load(bool hotReload)
     {
-        Logger.LogInformation($"Loaded. ServerID={Config.ServerId}");
+        Logger.LogInformation($"Плагин загружен. ID сервера: {Config.ServerId}");
 
         _ = Task.Run(async () =>
         {
@@ -58,17 +77,36 @@ public partial class ServersInfoTrack : BasePlugin, IPluginConfig<ServersInfoTra
         RegisterEventHandler<EventServerShutdown>(OnServerShutdown);
     }
 
-    private HookResult OnServerShutdown(EventServerShutdown @event, GameEventInfo info)
-    {
-        Logger.LogInformation("Server shutdown event detected.");
-        _ = SetServerStatusAsync(0, true);
-        return HookResult.Continue;
-    }
-
     public override void Unload(bool hotReload)
     {
-        _ = SetServerStatusAsync(0);
+        Logger.LogWarning("Плагин выгружается — устанавливаем статус OFFLINE...");
+
+        try
+        {
+            SetServerStatusAsync(0).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogCritical($"Критическая ошибка при установке статуса OFFLINE: {ex.Message}");
+        }
+
         base.Unload(hotReload);
+    }
+
+    private HookResult OnServerShutdown(EventServerShutdown @event, GameEventInfo info)
+    {
+        Logger.LogInformation($"Событие остановки сервера: {@event.Reason}");
+
+        try
+        {
+            SetServerStatusAsync(0, true).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Ошибка в OnServerShutdown: {ex.Message}");
+        }
+
+        return HookResult.Continue;
     }
 
     private HookResult OnPlayerConnectFull(EventPlayerConnectFull ev, GameEventInfo info)
@@ -87,13 +125,16 @@ public partial class ServersInfoTrack : BasePlugin, IPluginConfig<ServersInfoTra
     {
         try
         {
-            Logger.LogInformation($"Проверка подключения к MySQL ({Config.Database.Host}:{Config.Database.Port})...");
+            Logger.LogInformation(
+                $"Проверка подключения к MySQL ({Config.Database.Host}:{Config.Database.Port})..."
+            );
 
             using var connection = new MySqlConnection(ConnectionString);
             await connection.OpenAsync();
             Logger.LogInformation("Подключение к MySQL успешно!");
 
-            string createTableQuery = $@"
+            string createTableQuery =
+                $@"
                 CREATE TABLE IF NOT EXISTS `{Config.Database.TableName}` (
                     `id` INT PRIMARY KEY,
                     `ip` VARCHAR(64) DEFAULT NULL,
@@ -109,11 +150,13 @@ public partial class ServersInfoTrack : BasePlugin, IPluginConfig<ServersInfoTra
             using var command = new MySqlCommand(createTableQuery, connection);
             await command.ExecuteNonQueryAsync();
 
-            Logger.LogInformation($"Таблица `{Config.Database.TableName}` проверена/создана.");
+            Logger.LogInformation(
+                $"Таблица `{Config.Database.TableName}` проверена и создана при необходимости."
+            );
         }
         catch (Exception ex)
         {
-            Logger.LogError($"Ошибка при подключении к БД: {ex.Message}");
+            Logger.LogError($"Ошибка подключения к базе данных: {ex.Message}");
         }
     }
 
@@ -128,14 +171,17 @@ public partial class ServersInfoTrack : BasePlugin, IPluginConfig<ServersInfoTra
             await Server.NextFrameAsync(() =>
             {
                 mapName = Server.MapName ?? "unknown";
-                activePlayers = Utilities.GetPlayers().Count(p => p.IsValid && !p.IsBot && !p.IsHLTV);
+                activePlayers = Utilities
+                    .GetPlayers()
+                    .Count(p => p.IsValid && !p.IsBot && !p.IsHLTV);
                 maxPlayers = Server.MaxPlayers;
             });
 
             using var connection = new MySqlConnection(ConnectionString);
             await connection.OpenAsync();
 
-            string query = $@"
+            string query =
+                $@"
                 INSERT INTO `{Config.Database.TableName}`
                 (`id`, `ip`, `name`, `active_players`, `max_players`, `map_name`, `status`)
                 VALUES (@id, @ip, @name, @players, @max, @map, 1)
@@ -157,11 +203,11 @@ public partial class ServersInfoTrack : BasePlugin, IPluginConfig<ServersInfoTra
             command.Parameters.AddWithValue("@map", mapName);
 
             await command.ExecuteNonQueryAsync();
-            Logger.LogDebug($"DB updated for server {Config.ServerId}");
+            Logger.LogDebug($"База данных обновлена для сервера ID: {Config.ServerId}");
         }
         catch (Exception ex)
         {
-            Logger.LogError($"Error updating DB: {ex.Message}");
+            Logger.LogError($"Ошибка при обновлении базы данных: {ex.Message}");
         }
     }
 
@@ -172,7 +218,8 @@ public partial class ServersInfoTrack : BasePlugin, IPluginConfig<ServersInfoTra
             using var connection = new MySqlConnection(ConnectionString);
             await connection.OpenAsync();
 
-            string query = $@"
+            string query =
+                $@"
                 INSERT INTO `{Config.Database.TableName}` (`id`, `status`, `active_players`)
                 VALUES (@id, @status, @players)
                 ON DUPLICATE KEY UPDATE
@@ -187,21 +234,22 @@ public partial class ServersInfoTrack : BasePlugin, IPluginConfig<ServersInfoTra
 
             await command.ExecuteNonQueryAsync();
 
-            Logger.LogInformation($"Server status set to {(status == 1 ? "ONLINE" : "OFFLINE")}");
+            Logger.LogInformation(
+                $"Статус сервера установлен: {(status == 1 ? "ОНЛАЙН" : "ОФФЛАЙН")}"
+            );
         }
         catch (Exception ex)
         {
-            Logger.LogError($"Error setting server status: {ex.Message}");
+            Logger.LogError($"Ошибка при установке статуса сервера: {ex.Message}");
         }
     }
-
 
     public void OnConfigParsed(ServersInfoTrackConfig config)
     {
         Config = config;
 
         if (string.IsNullOrWhiteSpace(Config.ServerName))
-            Config.ServerName = "Unnamed Server";
+            Config.ServerName = "Безымянный сервер";
 
         if (string.IsNullOrWhiteSpace(Config.ServerIp))
             Config.ServerIp = "127.0.0.1";
