@@ -1,4 +1,14 @@
-bin
-obj
-.vs
-.build
+# .NET
+bin/
+obj/
+*.csproj.user
+*.dll
+*.pdb
+
+# Build output
+/build/
+
+# VS Code
+.vscode/
+
+.config

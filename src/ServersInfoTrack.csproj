@@ -3,43 +3,36 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CounterStrikeSharp.API" Version="1.0.316" />
     <PackageReference Include="MySqlConnector" Version="2.4.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <Target Name="CopyPluginFiles" AfterTargets="Build">
     <PropertyGroup>
-      <ServerRoot>$(ProjectDir)build\addons\counterstrikesharp\</ServerRoot>
+      <!-- Корень проекта — на уровень выше src/ -->
+      <ProjectRoot>$([System.IO.Directory]::GetParent($(MSBuildProjectDirectory)))</ProjectRoot>
+      <ServerRoot>$(ProjectRoot)\build\addons\counterstrikesharp\</ServerRoot>
       <PluginOutputDir>$(ServerRoot)plugins\ServersInfoTrack\</PluginOutputDir>
       <ConfigOutputDir>$(ServerRoot)configs\plugins\ServersInfoTrack\</ConfigOutputDir>
     </PropertyGroup>
 
+    <!-- Создаём папки -->
     <MakeDir Directories="$(PluginOutputDir)" />
     <MakeDir Directories="$(ConfigOutputDir)" />
 
+    <!-- Копируем DLL -->
     <Copy
       SourceFiles="$(OutputPath)ServersInfoTrack.dll"
       DestinationFolder="$(PluginOutputDir)"
       SkipUnchangedFiles="false"
     />
 
-    <ItemGroup>
-      <PluginDeps Include="$(OutputPath)MySqlConnector.dll;$(OutputPath)Newtonsoft.Json.dll" />
-    </ItemGroup>
-
+    <!-- Копируем config.example.json из КОРНЯ проекта -->
     <Copy
-      SourceFiles="@(PluginDeps)"
-      DestinationFolder="$(PluginOutputDir)"
-      SkipUnchangedFiles="false"
-    />
-
-    <Copy
-      SourceFiles="$(ProjectDir)config.example.json"
+      SourceFiles="$(ProjectRoot)\config.example.json"
       DestinationFiles="$(ConfigOutputDir)ServersInfoTrack.json"
       SkipUnchangedFiles="true"
     />
